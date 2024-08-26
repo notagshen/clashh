@@ -47,12 +47,12 @@ async function operator(proxies = [], targetPlatform, context) {
   const bytes = ($arguments.size || 10) * 1024 * 1024
   const url = `https://speed.cloudflare.com/__down?bytes=${bytes}`
 
-    /** 新增minRequiredSpeed */
+    //新增minRequiredSpeed参数，默认值为20
  const minRequiredSpeed = $arguments.minRequiredSpeed ?? 20;
 
   const $ = $substore
   const validProxies = []
-  const 在compatibleProxies = []
+  const incompatibleProxies = []
   const internalProxies = []
   proxies.map((proxy, index) => {
     try {
@@ -67,7 +67,7 @@ async function operator(proxies = [], targetPlatform, context) {
         internalProxies.push({ ...node, _proxies_index: index })
       } else {
         if (keepIncompatible) {
-          在compatibleProxies.push(proxy)
+          incompatibleProxies.push(proxy)
         }
       }
     } catch (e) {
