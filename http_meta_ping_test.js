@@ -2,7 +2,7 @@
  *
  * 对于原版的修改:
  * 1. 增加了对节点欺诈值的检测和标记功能。访问scamalytics.com获取IP的欺诈值，如果欺诈值超过参数max_risk_score，节点名称的结尾会写上”欺诈值过高“。方便使用Sub-Store正则过滤去掉欺诈值过高的节点。
- * 2. 在节点名称前附加国家/地区旗帜表情符号，以增加可视化效果。 通过flag参数控制，默认:true。
+ * 2. 只在节点名称前附加国家/地区旗帜表情符号，以增加可视化效果。 通过format_only_flag参数控制，默认:false。
  *
  *
  * 节点信息(适配 Sub-Store Node.js 版)
@@ -43,7 +43,7 @@
  * - [remove_failed] 移除失败的节点. 默认不移除.
  * - [mmdb_country_path] 见 internal
  * - [mmdb_asn_path] 见 internal
- * 
+ *
  *  新增参数
  * - [max_risk_score] 最大允许的欺诈分，默认100，超过该值则在节点名称上附加 ”欺诈值过高“字段来标记当前节点欺诈值过高。
  * - [format_only_flag] format只附加国旗emoji的自定义格式，默认false。 如果设置为true，则format 将设置为：{{country_emojis_dict[api.countryCode]}} - {{proxy.name}}。  //其中country_emojis_dict[api.countryCode]是国旗，proxy.name是原节点名称。
