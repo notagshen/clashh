@@ -181,10 +181,11 @@ async function operator(proxies = [], targetPlatform, context) {
       let latency = ''
       latency = `${Date.now() - startedAt}`
       const speed = Math.round((bytes / 1024 / 1024 / (latency / 1000)) * 8) + ' M'
-      $.info(`[${proxy.name}] status: ${status}, latency: ${latency}, speed: ${speed}`)
+      $.info(`[${proxy.name}] status: ${status}, latency: ${latency}， speed: ${speed}`)
       // 判断响应
       if (speed) {
-        if (speed > 30) {
+        const speedValue = parseFloat(speed); // 提取数值部分
+        if (speedValue > 30) {
           validProxies.push({
             ...proxy,
             name: `${proxy.name} [${speed}] `,
