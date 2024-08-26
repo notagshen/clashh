@@ -94,7 +94,7 @@ async function fetchIpRisk(api, proxy) {
 // operator 函数开始
 async function operator(proxies = [], targetPlatform, context) {
   // 新增max_risk_score参数，默认值为100
-  const max_risk_score = $arguments.minRequired_risk ?? 100;
+  const max_risk_score = $arguments.max_risk_score ?? 100;
   //新增结束
 
   const cacheEnabled = $arguments.cache
