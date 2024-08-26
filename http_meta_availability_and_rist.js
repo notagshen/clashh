@@ -21,7 +21,7 @@
  * - [http_meta_proxy_timeout] 每个节点耗时(单位: 毫秒). 此参数是为了防止脚本异常退出未关闭核心. 设置过小将导致核心过早退出. 目前逻辑: 启动初始的延时 + 每个节点耗时. 默认: 10000
  *
  * 其它参数
- * - [retries] 重试次数 默认 1
+ * - [retries] 重试次数 默认 3
  * - [retry_delay] 重试延时(单位: 毫秒) 默认 1000
  * - [concurrency] 并发数 默认 10
  * - [timeout] 请求超时(单位: 毫秒) 默认 5000
@@ -320,7 +320,7 @@ async function operator(proxies = [], targetPlatform, context) {
           api = JSON.parse(api)
         } catch (e) {}
       }
-      if (status == 200) {
+      if (status == 200 || status == 502) {
 
         proxies[proxy._proxies_index].name = formatter({ proxy: proxies[proxy._proxies_index], api, format })
         proxies[proxy._proxies_index]._geo = api
