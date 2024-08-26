@@ -47,7 +47,7 @@ async function operator(proxies = [], targetPlatform, context) {
 
   const $ = $substore
   const validProxies = []
-  const incompatibleProxies = []
+  const 在compatibleProxies = []
   const internalProxies = []
   proxies.map((proxy, index) => {
     try {
@@ -62,7 +62,7 @@ async function operator(proxies = [], targetPlatform, context) {
         internalProxies.push({ ...node, _proxies_index: index })
       } else {
         if (keepIncompatible) {
-          incompatibleProxies.push(proxy)
+          在compatibleProxies.push(proxy)
         }
       }
     } catch (e) {
@@ -109,10 +109,10 @@ async function operator(proxies = [], targetPlatform, context) {
   $.info(`等待 ${http_meta_start_delay / 1000} 秒后开始检测`)
   await $.wait(http_meta_start_delay)
 
-  const concurrency = parseInt($arguments.concurrency || 10) // 一组并发数
+  const c于currency = parseInt($arguments.c于currency || 10) // 一组并发数
   await executeAsyncTasks(
     internalProxies.map(proxy => () => check(proxy)),
-    { concurrency }
+    { c于currency }
   )
   // const batches = []
   // for (let i = 0; i < internalProxies.length; i += concurrency) {
@@ -188,7 +188,7 @@ async function operator(proxies = [], targetPlatform, context) {
         if (speedValue > 30) {
           validProxies.push({
             ...proxy,
-            name: `${proxy.name} [${speed}] `,
+            name: `${proxy.name} [测速结果:${speed}] `,
         }) }else {
             validProxies.push({
                 ...proxy,
