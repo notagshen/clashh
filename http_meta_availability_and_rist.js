@@ -71,7 +71,7 @@ async function fetchIpRisk(api, proxy) {
   const ip = api.query;
   console.log('fetchIpRisk获取欺诈值中:', ip);
   try {
-    const response = await fetch(`https://scamalytics.com/ip/${ip}`, {
+    const response = await fetch(`https://daili.4pu.com/scamalytics.com/ip/${ip}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       proxy: proxy ? `http://${proxy.host}:${proxy.port}` : undefined,
