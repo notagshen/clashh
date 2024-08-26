@@ -39,6 +39,50 @@
  * - [mmdb_country_path] 见 internal
  * - [mmdb_asn_path] 见 internal
  */
+
+// parseIpRisk 函数
+function parseIpRisk(html) {
+  console.log('Parsing IP risk data...');
+  const scoreMatch = html.match(/"score":"(.*?)"/);
+  const riskMatch = html.match(/"risk":"(.*?)"/);
+
+  if (riskMatch) {
+    const riskData = {
+      score: scoreMatch ? scoreMatch[1] : null,
+      risk: riskMatch[1],
+    };
+    console.log('Parsed risk data:', riskData);
+    return riskData;
+  }
+
+  console.log('Failed to parse risk data.');
+  return null;
+}
+
+// fetchIpRisk 函数
+async function fetchIpRisk(ip, proxy) {
+  console.log('Fetching IP risk for:', ip);
+  try {
+    const response = await fetch(`https://scamalytics.com/ip/${ip}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      proxy: proxy ? `http://${proxy.host}:${proxy.port}` : undefined,
+      timeout: 5000, // 5秒超时
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const html = await response.text();
+    const riskData = parseIpRisk(html);
+    return riskData;
+  } catch (error) {
+    console.log('Error fetching IP risk:', error);
+  }
+}
+
+// operator 函数开始
 async function operator(proxies = [], targetPlatform, context) {
   const cacheEnabled = $arguments.cache
   const cache = scriptResourceCache
@@ -58,7 +102,7 @@ async function operator(proxies = [], targetPlatform, context) {
   const internal = $arguments.internal
   const mmdb_country_path = $arguments.mmdb_country_path
   const mmdb_asn_path = $arguments.mmdb_asn_path
-  let format = $arguments.format || '{{api.country}} {{api.isp}} - {{proxy.risk} - {{proxy.name}}'
+  let format = $arguments.format || '{{api.country}} {{api.isp}} - {{proxy.risk}} - {{proxy.name}}'
   let url = $arguments.api || 'http://ip-api.com/json?lang=zh-CN'
   let utils
   if (internal) {
@@ -372,53 +416,6 @@ async function operator(proxies = [], targetPlatform, context) {
         reject(e)
       }
     })
-
-
-  async function fetchIpRisk(ip, proxy) {
-    console.log('Fetching IP risk for:', ip);
-    try {
-      const response = await fetch(`https://scamalytics.com/ip/${ip}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        // 使用代理
-        proxy: proxy ? `http://${proxy.host}:${proxy.port}` : undefined,
-        timeout: 5000 // 5秒超时
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const html = await response.text();
-      // console.log('IP risk fetched:', html);
-      const riskData = parseIpRisk(html);
-      return riskData;
-    } catch (error) {
-      console.log('Error fetching IP risk:', error);
-    }
-  }
-
-
-  function parseIpRisk(html) {
-    console.log('Parsing IP risk data...');
-    const scoreMatch = html.match(/"score":"(.*?)"/);
-    const riskMatch = html.match(/"risk":"(.*?)"/);
-
-    if (riskMatch) {
-      const riskData = {
-        score: scoreMatch ? scoreMatch[1] : null,
-        risk: riskMatch[1]
-      };
-      console.log('Parsed risk data:', riskData);
-      return riskData;
-    }
-
-    console.log('Failed to parse risk data.');
-    return null;
-  }
-
-
-
-
+    
   }
 }
