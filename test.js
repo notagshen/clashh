@@ -313,7 +313,10 @@ async function operator(proxies = [], targetPlatform, context) {
         proxies[proxy._proxies_index]._geo = api
         const riskData = await fetchIpRisk(api,proxy);
         if (riskData) {
-            proxies[proxy._proxies_index].name += ` - 欺诈值${riskData}`;
+          const riskValue = parseInt(riskData, 10); // 确保风险值是数字类型
+          if (riskValue > 30) {
+            proxies[proxy._proxies_index].name += ` - 欺诈值过高：${riskData}`;
+          } 
         }
         if (cacheEnabled) {
           $.info(`[${proxy.name}] 设置成功缓存`)
