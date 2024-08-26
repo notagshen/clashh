@@ -1,9 +1,8 @@
 
 /**
  *  对原版修改：
- *   -结束后把速度写在节点名称的结尾。
- *   -速度小于30M的节点除了会写速度，会写上速度过低，方便使用Sub-Store正则过滤去掉速度过低的节点。
-
+ *   -结束后把速度写在节点名称的结尾而不是开头。
+ *   -参数新增[minRequiredSpeed]，最低速度限制，如果测速结果低于这个值，节点名称的结尾会写上速度过低。方便使用Sub-Store正则过滤去掉速度过低的节点。 默认:20。单位:Mbps。
  
  * 节点测速娱乐版(适配 Sub-Store Node.js 版)
  *
@@ -27,6 +26,9 @@
  * - [size] 测速大小(单位 MB). 默认 10
  * - [keep_incompatible] 保留当前客户端不兼容的协议. 默认不保留.
  * - [cache] 使用缓存, 默认不使用缓存
+ * 
+ * 新增参数
+ * - [minRequiredSpeed] 最低速度限制，如果测速结果低于这个值，节点名称的结尾会写上速度过低。方便使用Sub-Store正则过滤去掉速度过低的节点。 默认:20。 单位:Mbps。
  */
 
 async function operator(proxies = [], targetPlatform, context) {
@@ -45,6 +47,9 @@ async function operator(proxies = [], targetPlatform, context) {
   const bytes = ($arguments.size || 10) * 1024 * 1024
   const url = `https://speed.cloudflare.com/__down?bytes=${bytes}`
 
+    /** 新增minRequiredSpeed */
+ const minRequiredSpeed = $arguments.minRequiredSpeed ?? 20;
+ 
   const $ = $substore
   const validProxies = []
   const 在compatibleProxies = []
@@ -185,7 +190,7 @@ async function operator(proxies = [], targetPlatform, context) {
       // 判断响应
       if (speed) {
         const speedValue = parseFloat(speed); // 提取数值部分
-        if (speedValue > 30) {
+        if (speedValue >= minRequiredSpeed) {
           validProxies.push({
             ...proxy,
             name: `${proxy.name} [测速结果:${speed}] `,
