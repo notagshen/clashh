@@ -41,8 +41,8 @@
  */
 
 // parseIpRisk 函数
-function parseIpRisk(html) {
-  console.log('Parsing IP risk data...');
+function parseIpRisk(html,ip) {
+  console.log('parseIpRisk解析 IP 风险数据...');
   const scoreMatch = html.match(/"score":"(.*?)"/);
   const riskMatch = html.match(/"risk":"(.*?)"/);
 
@@ -51,17 +51,18 @@ function parseIpRisk(html) {
       score: scoreMatch ? scoreMatch[1] : null,
       risk: riskMatch[1],
     };
-    console.log('Parsed risk data:', riskData);
-    return riskData;
+    console.log('parseIpRisk解析',ip ,"风险结果:",riskData.score);
+    return riskData.score;
   }
 
-  console.log('Failed to parse risk data.');
+  console.log('parseIpRisk无法解析风险数据.');
   return null;
 }
 
 // fetchIpRisk 函数
-async function fetchIpRisk(ip, proxy) {
-  console.log('Fetching IP risk for:', ip);
+async function fetchIpRisk(api, proxy) {
+  const ip = api.query;
+  console.log('fetchIpRisk获取欺诈值中:', ip);
   try {
     const response = await fetch(`https://scamalytics.com/ip/${ip}`, {
       method: 'GET',
@@ -71,14 +72,15 @@ async function fetchIpRisk(ip, proxy) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`fetchIpRisk 获取HTTP 错误! 状态码: ${response.status}`);
     }
 
     const html = await response.text();
-    const riskData = parseIpRisk(html);
+    const riskData = parseIpRisk(html,ip);
+    api.risk = riskData;
     return riskData;
   } catch (error) {
-    console.log('Error fetching IP risk:', error);
+    console.log('fetchIpRisk获取IP风险时出错:', error);
   }
 }
 
@@ -102,7 +104,7 @@ async function operator(proxies = [], targetPlatform, context) {
   const internal = $arguments.internal
   const mmdb_country_path = $arguments.mmdb_country_path
   const mmdb_asn_path = $arguments.mmdb_asn_path
-  let format = $arguments.format || '{{api.country}} {{api.isp}} - {{proxy.risk}} - {{proxy.name}}'
+  let format = $arguments.format || '{{api.country}} {{api.isp}} - {{proxy.name}}';
   let url = $arguments.api || 'http://ip-api.com/json?lang=zh-CN'
   let utils
   if (internal) {
@@ -309,13 +311,10 @@ async function operator(proxies = [], targetPlatform, context) {
       if (status == 200) {
         proxies[proxy._proxies_index].name = formatter({ proxy: proxies[proxy._proxies_index], api, format })
         proxies[proxy._proxies_index]._geo = api
-
-              // 获取IP风险信息
-        const ipRiskData = await fetchIpRisk(api.query, proxy);
-        if (ipRiskData) {
-          proxy.risk = ipRiskData;
+        const riskData = await fetchIpRisk(api,proxy);
+        if (riskData) {
+            proxies[proxy._proxies_index].name += ` - 欺诈值${riskData}`;
         }
-
         if (cacheEnabled) {
           $.info(`[${proxy.name}] 设置成功缓存`)
           cache.set(id, { api })
@@ -416,6 +415,6 @@ async function operator(proxies = [], targetPlatform, context) {
         reject(e)
       }
     })
-    
+
   }
 }
