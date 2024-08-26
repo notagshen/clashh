@@ -114,10 +114,10 @@ async function operator(proxies = [], targetPlatform, context) {
   $.info(`等待 ${http_meta_start_delay / 1000} 秒后开始检测`)
   await $.wait(http_meta_start_delay)
 
-  const c于currency = parseInt($arguments.c于currency || 10) // 一组并发数
+  const concurrency = parseInt($arguments.concurrency || 10) // 一组并发数
   await executeAsyncTasks(
     internalProxies.map(proxy => () => check(proxy)),
-    { c于currency }
+    { concurrency }
   )
   // const batches = []
   // for (let i = 0; i < internalProxies.length; i += concurrency) {
@@ -186,7 +186,7 @@ async function operator(proxies = [], targetPlatform, context) {
       let latency = ''
       latency = `${Date.now() - startedAt}`
       const speed = Math.round((bytes / 1024 / 1024 / (latency / 1000)) * 8) + ' M'
-      $.info(`[${proxy.name}] status: ${status}, latency: ${latency}， speed: ${speed}`)
+      $.info(`[${proxy.name}] status: ${status}, latency: ${latency}, speed: ${speed}`)
       // 判断响应
       if (speed) {
         const speedValue = parseFloat(speed); // 提取数值部分
