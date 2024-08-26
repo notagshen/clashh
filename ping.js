@@ -326,7 +326,7 @@ async function operator(proxies = [], targetPlatform, context) {
         proxies[proxy._proxies_index]._geo = api
 
         //新增
-
+        console.log(`最大允许的欺诈分：${max_risk_score}`);
         if (max_risk_score <100){
             const riskData = await fetchIpRisk(api,proxy);
             if (riskData) {
