@@ -323,7 +323,8 @@ async function operator(proxies = [], targetPlatform, context) {
       if (status == 200 || status == 502) {
 
         proxies[proxy._proxies_index].name = formatter({ proxy: proxies[proxy._proxies_index], api, format })
-        proxies[proxy._proxies_index]._geo = api
+        proxies[proxy._proxies_index]._geo = api || { error: '502 Bad Gateway' };
+
 
         //新增
         console.log(`最大允许的欺诈分：${max_risk_score}`);
