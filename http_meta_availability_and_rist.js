@@ -320,10 +320,10 @@ async function operator(proxies = [], targetPlatform, context) {
           api = JSON.parse(api)
         } catch (e) {}
       }
-      if (status == 200 || status == 502) {
+      if (status == 200) {
 
         proxies[proxy._proxies_index].name = formatter({ proxy: proxies[proxy._proxies_index], api, format })
-        proxies[proxy._proxies_index]._geo = api || { error: '502 Bad Gateway' };
+        proxies[proxy._proxies_index]._geo = api ;
 
 
         //新增
