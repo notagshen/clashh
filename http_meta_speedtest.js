@@ -212,6 +212,10 @@ async function operator(proxies = [], targetPlatform, context) {
       }
     } catch (e) {
       $.error(`[${proxy.name}] ${e.message ?? e}`)
+      validProxies.push({
+        ...proxy,
+        name: `${proxy.name} [测速失败]`,
+      });
       if (cacheEnabled) {
         $.info(`[${proxy.name}] 设置失败缓存`)
         cache.set(id, {})
