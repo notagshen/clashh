@@ -1,1 +1,7 @@
+payload:
+  - '+.4pu.com'
+  - '+.oaifree.com'
+  - '+.linux.do'
+  - '+.oaipro.com'
+  - '+.fuclaude.com'
 
