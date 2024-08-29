@@ -1,24 +1,50 @@
-DOMAIN-KEYWORD,porn
-DOMAIN-SUFFIX,8teenxxx.com
-DOMAIN-SUFFIX,ahcdn.com
-DOMAIN-SUFFIX,bcvcdn.com
-DOMAIN-SUFFIX,bongacams.com
-DOMAIN-SUFFIX,chaturbate.com
-DOMAIN-SUFFIX,dditscdn.com
-DOMAIN-SUFFIX,livejasmin.com
-DOMAIN-SUFFIX,phncdn.com
-DOMAIN-SUFFIX,phprcdn.com
-DOMAIN-SUFFIX,pornhub.com
-DOMAIN-SUFFIX,pornhubpremium.com
-DOMAIN-SUFFIX,rdtcdn.com
-DOMAIN-SUFFIX,redtube.com
-DOMAIN-SUFFIX,sb-cd.com
-DOMAIN-SUFFIX,spankbang.com
-DOMAIN-SUFFIX,t66y.com
-DOMAIN-SUFFIX,xhamster.com
-DOMAIN-SUFFIX,xnxx-cdn.com
-DOMAIN-SUFFIX,xnxx.com
-DOMAIN-SUFFIX,xvideos-cdn.com
-DOMAIN-SUFFIX,xvideos.com
-DOMAIN-SUFFIX,ypncdn.com
-DOMAIN-SUFFIX,hanime1.me
+payload:
+  - '+.8teenxxx.com
+  - '+.ahcdn.com
+  - '+.bcvcdn.com
+  - '+.bongacams.com
+  - '+.chaturbate.com
+  - '+.dditscdn.com
+  - '+.livejasmin.com
+  - '+.phncdn.com
+  - '+.phprcdn.com
+  - '+.pornhub.com
+  - '+.pornhubpremium.com
+  - '+.rdtcdn.com
+  - '+.redtube.com
+  - '+.sb-cd.com
+  - '+.spankbang.com
+  - '+.t66y.com
+  - '+.xhamster.com
+  - '+.xnxx-cdn.com
+  - '+.xnxx.com
+  - '+.xvideos-cdn.com
+  - '+.xvideos.com
+  - '+.ypncdn.com
+  - '+.hanime1.me
+  - '+.pornhub.com
+  - '+.xvideos.com
+  - '+.xnxx.com
+  - '+.pornhub.com
+  - '+.spankbang.com
+  - '+.youporn.com
+  - '+.tube8.com
+  - '+.redtube.com
+  - '+.xhamster.com
+  - '+.youjizz.com
+  - '+.tnaflix.com
+  - '+.extremetube.com
+  - '+.4tube.com
+  - '+.anysex.com
+  - '+.beeg.com
+  - '+.cam4.com
+  - '+.chaturbate.com
+  - '+.cams.com
+  - '+.fling.com
+  - '+.flirt4free.com
+  - '+.freeporn.com
+  - '+.freesex.com
+  - '+.fuckbook.com
+  - '+.fuckmymommyandme.com
+  - '+.fuckyeah.com
+  - '+.fuckyou.com
