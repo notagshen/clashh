@@ -57,24 +57,33 @@ function operator(proxies, targetPlatform) {
     const match = name.match(regex);
 
     if (match) {
-        const prefix = match[0]; // 包括 "沈子-" 的匹配部分
-        // 检查是否已包含国旗Emoji
-        if (!/[\u{1F1E6}-\u{1F1FF}]{2}/u.test(name)) {
-            // 遍历国家代码和对应的emoji
-            for (const [country, emoji] of Object.entries(country_emojis_dict)) {
-                if (name.includes(country)) {
-                    name = name.replace(country, emoji);
-                    name = name.replace("沈子-", "");
-                    break;
-                }
-            }
-        } else {
-            name = name.replace(prefix, ""); // 如果已包含 Emoji，则只移除前缀
+      const prefix = match[0]; // 包括 "沈子-"
+
+      // 遍历国家代码和对应的emoji
+      for (const [country, emoji] of Object.entries(country_emojis_dict)) {
+        if (name.includes(emoji)) {
+          // 如果节点名称已经包含该emoji
+
+          if (!name.startsWith(emoji)) {
+            // 如果emoji不在开头，将其移动到开头
+            name = name.replace(emoji, ''); // 移除emoji
+            name = emoji + name; // 将emoji添加到开头
+          }
+
+          name = name.replace(prefix , "");
+          break;
+        } else if (name.includes(country)) {
+          // 如果节点名称包含国家代码且未包含emoji
+
+          name = name.replace(prefix, ''); 
+          name = emoji + name; // 将emoji添加到开头
+          break;
         }
+      }
     }
     return {
       ...proxy,
       name: name
     };
   });
-}
+} 
