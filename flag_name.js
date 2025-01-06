@@ -1,4 +1,4 @@
-country_emojis_dict = {
+const country_emojis_dict = {
     "AD": "🇦🇩", "AE": "🇦🇪", "AF": "🇦🇫", "AG": "🇦🇬", "AI": "🇦🇮", "AL": "🇦🇱", "AM": "🇦🇲", "AO": "🇦🇴", "AQ": "🇦🇶",
     "AR": "🇦🇷",
     "AS": "🇦🇸", "AT": "🇦🇹", "AU": "🇦🇺", "AW": "🇦🇼", "AX": "🇦🇽", "AZ": "🇦🇿", "BA": "🇧🇦", "BB": "🇧🇧", "BD": "🇧🇩",
@@ -48,25 +48,30 @@ country_emojis_dict = {
     "UG": "🇺🇬", "UM": "🇺🇲", "US": "🇺🇸", "UY": "🇺🇾", "UZ": "🇺🇿", "VA": "🇻🇦", "VC": "🇻🇨", "VE": "🇻🇪", "VG": "🇻🇬",
     "VI": "🇻🇮",
     "VN": "🇻🇳", "VU": "🇻🇺", "WF": "🇼🇫", "WS": "🇼🇸", "YE": "🇾🇪", "YT": "🇾🇹", "ZA": "🇿🇦", "ZM": "🇿🇲", "ZW": "🇿🇼"
-}
-// 示例代码：根据节点名称中的国家字符串添加 Emoji
+};
+
 function operator(proxies, targetPlatform) {
   return proxies.map(proxy => {
-    // 获取节点名称
     let name = proxy.name;
+    const regex = /(.*?)沈子-/;
+    const match = name.match(regex);
 
-    // 定义国家与对应 Emoji 的映射
-
-
-    // 遍历映射，根据节点名称替换国家名称为对应的 Emoji
-    for (const [country, emoji] of Object.entries(country_emojis_dict)) {
-      if (name.includes(country)) {
-        name = name.replace(country, emoji);
-        break; // 如果找到匹配的国家，就停止遍历
-      }
+    if (match) {
+        const prefix = match[0]; // 包括 "沈子-" 的匹配部分
+        // 检查是否已包含国旗Emoji
+        if (!/[\u{1F1E6}-\u{1F1FF}]{2}/u.test(name)) {
+            // 遍历国家代码和对应的emoji
+            for (const [country, emoji] of Object.entries(country_emojis_dict)) {
+                if (name.includes(country)) {
+                    name = name.replace(country, emoji);
+                    name = name.replace("沈子-", "");
+                    break;
+                }
+            }
+        } else {
+            name = name.replace(prefix, ""); // 如果已包含 Emoji，则只移除前缀
+        }
     }
-
-    // 更新节点的名称
     return {
       ...proxy,
       name: name
