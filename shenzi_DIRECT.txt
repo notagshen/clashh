@@ -1,7 +1,9 @@
 payload:
-  - '+.4pu.com'
-  - '+.oaifree.com'
-  - '+.linux.do'
-  - '+.oaipro.com'
-  - '+.fuclaude.com'
+  - DOMAIN-KEYWORD,oaifree,DIRECT
+  - DOMAIN-SUFFIX,shared.oaifree.com,DIRECT
 
+  - DOMAIN-KEYWORD,oaifree,DIRECT
+  - DOMAIN-SUFFIX,linux.do,DIRECT
+  - DOMAIN-SUFFIX,oaipro.com,DIRECT
+  - DOMAIN-SUFFIX,4pu.com,DIRECT
+  - DOMAIN-SUFFIX,fuclaude.com,DIRECT
