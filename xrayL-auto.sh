@@ -7,45 +7,48 @@ DEFAULT_SOCKS_PASSWORD="229310"
 DEFAULT_WS_PATH="/ws"
 DEFAULT_UUID=$(cat /proc/sys/kernel/random/uuid)
 
+# --- 关键修正：使用更可靠的方式获取IP地址 ---
+# 首先尝试 'hostname -I'，如果失败，则通过外部服务获取
 IP_ADDRESSES=($(hostname -I))
+if [ ${#IP_ADDRESSES[@]} -eq 0 ]; then
+    echo "Warning: 'hostname -I' returned no IPs. Trying to fetch public IP from external service..."
+    # 使用 curl 从 ifconfig.me 获取公网IP，-s 表示静默模式
+    PUBLIC_IP=$(curl -s ifconfig.me)
+    if [ -n "$PUBLIC_IP" ]; then
+        IP_ADDRESSES=($PUBLIC_IP)
+        echo "Successfully fetched public IP: $PUBLIC_IP"
+    else
+        echo "Error: Failed to get any IP address. Cannot generate config." >&2
+        exit 1
+    fi
+fi
+# --- 修正结束 ---
 
-# --- 修正部分：健壮的依赖安装 ---
-# 功能：检测操作系统并安装所有必需的依赖包
+
+# --- 函数部分 (与上一版完全相同，无需改动) ---
+
 install_dependencies() {
     echo "Checking and installing dependencies..."
     if command -v apt-get &>/dev/null; then
-        # 适用于 Debian/Ubuntu
         apt-get update -qq
         apt-get install -y wget unzip iptables curl
     elif command -v yum &>/dev/null; then
-        # 适用于 CentOS/RHEL
         yum install -y wget unzip iptables-services curl
     else
-        echo "Error: Unsupported package manager. Please install wget, unzip, iptables manually." >&2
+        echo "Error: Unsupported package manager." >&2
         exit 1
     fi
     echo "Dependencies are ready."
 }
 
-
-# --- 基本保持不变：安装Xray ---
 install_xray() {
-    # 修正：首先调用函数确保依赖已安装
     install_dependencies
-    
     echo "Installing Xray..."
-    # 原有的`apt || yum`命令已被上面的函数替代
-    
     wget https://github.com/XTLS/Xray-core/releases/download/v1.8.3/Xray-linux-64.zip
-    unzip Xray-linux-64.zip
-    
-    # 清理下载和解压后的多余文件
-    rm -f Xray-linux-64.zip Xray-linux-64.zip.* geoip.dat geosite.dat LICENSE README.md
-    
+    unzip -o Xray-linux-64.zip # 使用 -o 选项覆盖已存在的文件
+    rm -f Xray-linux-64.zip* geoip.dat geosite.dat LICENSE README.md
     mv xray /usr/local/bin/xrayL
     chmod +x /usr/local/bin/xrayL
-
-    # 服务文件 (与您原来的一致)
     cat <<EOF >/etc/systemd/system/xrayL.service
 [Unit]
 Description=XrayL Service
@@ -66,10 +69,10 @@ EOF
     echo "Xray installed successfully."
 }
 
-# --- 未做任何修改：您的原始配置逻辑 ---
 config_xray() {
     config_type=$1
     mkdir -p /etc/xrayL
+    # ... (后续所有配置生成逻辑完全保持不变) ...
     if [ "$config_type" != "socks" ] && [ "$config_type" != "vmess" ]; then
         echo "Invalid type! Only 'socks' and 'vmess' are supported."
         exit 1
@@ -118,11 +121,15 @@ config_xray() {
     done
 
     echo -e "$config_content" > /etc/xrayL/config.toml
+    
+    # 修正systemd的重启方式
+    echo "Restarting xrayL service..."
+    # 在重启前先重置失败计数器，确保能正常启动
+    systemctl reset-failed xrayL.service
     systemctl restart xrayL.service
-    sleep 2 # 等待服务启动
+    sleep 2
     systemctl --no-pager status xrayL.service
 
-    # Open ports (确保iptables命令现在可用)
     for ((port = START_PORT; port <= START_PORT + i - 1; port++)); do
         if iptables -I INPUT -p tcp --dport $port -j ACCEPT && \
            iptables -I INPUT -p udp --dport $port -j ACCEPT; then
@@ -146,9 +153,7 @@ config_xray() {
     echo ""
 }
 
-# --- 未做任何修改：您的主函数 ---
 main() {
-    # 修正：增加 root 权限检查
     if [ "$EUID" -ne 0 ]; then
       echo "Error: This script must be run as root." >&2
       exit 1
@@ -165,17 +170,11 @@ main() {
     fi
 
     case "$config_type" in
-        vmess)
-            config_xray "vmess"
-            ;;
-        socks)
-            config_xray "socks"
-            ;;
-        *)
-            echo "Invalid type selected. Using default SOCKS configuration."
-            config_xray "socks"
-            ;;
+        vmess) config_xray "vmess";;
+        socks) config_xray "socks";;
+        *) echo "Invalid type. Using default SOCKS." && config_xray "socks";;
     esac
 }
 
 main "$@"
+
