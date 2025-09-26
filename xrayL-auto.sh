@@ -1,31 +1,26 @@
 #!/bin/bash
 
-# --- 默认配置 (与您原来的一致) ---
+# --- 默认配置 ---
 DEFAULT_START_PORT=9001
 DEFAULT_SOCKS_USERNAME="tcst"
 DEFAULT_SOCKS_PASSWORD="229310"
 DEFAULT_WS_PATH="/ws"
 DEFAULT_UUID=$(cat /proc/sys/kernel/random/uuid)
 
-# --- 关键修正：使用更可靠的方式获取IP地址 ---
-# 首先尝试 'hostname -I'，如果失败，则通过外部服务获取
-IP_ADDRESSES=($(hostname -I))
-if [ ${#IP_ADDRESSES[@]} -eq 0 ]; then
-    echo "Warning: 'hostname -I' returned no IPs. Trying to fetch public IP from external service..."
-    # 使用 curl 从 ifconfig.me 获取公网IP，-s 表示静默模式
-    PUBLIC_IP=$(curl -s ifconfig.me)
-    if [ -n "$PUBLIC_IP" ]; then
-        IP_ADDRESSES=($PUBLIC_IP)
-        echo "Successfully fetched public IP: $PUBLIC_IP"
-    else
-        echo "Error: Failed to get any IP address. Cannot generate config." >&2
-        exit 1
-    fi
+# --- 核心修正：不再使用 hostname -I，直接且仅使用公网IP ---
+# 这样可以确保只为能访问互联网的公网IP创建代理
+echo "Fetching the public IP address..."
+PUBLIC_IP=$(curl -s ifconfig.me)
+if [ -z "$PUBLIC_IP" ]; then
+    echo "Error: Failed to fetch the public IP address. Cannot generate config." >&2
+    exit 1
 fi
+IP_ADDRESSES=($PUBLIC_IP)
+echo "Using public IP: ${IP_ADDRESSES[0]}"
 # --- 修正结束 ---
 
 
-# --- 函数部分 (与上一版完全相同，无需改动) ---
+# --- 函数部分 (无需任何改动) ---
 
 install_dependencies() {
     echo "Checking and installing dependencies..."
@@ -45,7 +40,7 @@ install_xray() {
     install_dependencies
     echo "Installing Xray..."
     wget https://github.com/XTLS/Xray-core/releases/download/v1.8.3/Xray-linux-64.zip
-    unzip -o Xray-linux-64.zip # 使用 -o 选项覆盖已存在的文件
+    unzip -o Xray-linux-64.zip
     rm -f Xray-linux-64.zip* geoip.dat geosite.dat LICENSE README.md
     mv xray /usr/local/bin/xrayL
     chmod +x /usr/local/bin/xrayL
@@ -72,7 +67,6 @@ EOF
 config_xray() {
     config_type=$1
     mkdir -p /etc/xrayL
-    # ... (后续所有配置生成逻辑完全保持不变) ...
     if [ "$config_type" != "socks" ] && [ "$config_type" != "vmess" ]; then
         echo "Invalid type! Only 'socks' and 'vmess' are supported."
         exit 1
@@ -88,7 +82,9 @@ config_xray() {
         UUID=$DEFAULT_UUID
         WS_PATH=$DEFAULT_WS_PATH
     fi
-
+    
+    # 因为现在 IP_ADDRESSES 数组里只有唯一的公网IP，这个循环只会执行一次
+    # 这就完美地解决了为内网IP创建无效代理的问题
     for ((i = 0; i < ${#IP_ADDRESSES[@]}; i++)); do
         config_content+="[[inbounds]]\n"
         config_content+="port = $((START_PORT + i))\n"
@@ -122,14 +118,13 @@ config_xray() {
 
     echo -e "$config_content" > /etc/xrayL/config.toml
     
-    # 修正systemd的重启方式
     echo "Restarting xrayL service..."
-    # 在重启前先重置失败计数器，确保能正常启动
     systemctl reset-failed xrayL.service
     systemctl restart xrayL.service
     sleep 2
     systemctl --no-pager status xrayL.service
 
+    # i 的值现在最大只会是 1 (因为只有一个IP)
     for ((port = START_PORT; port <= START_PORT + i - 1; port++)); do
         if iptables -I INPUT -p tcp --dport $port -j ACCEPT && \
            iptables -I INPUT -p udp --dport $port -j ACCEPT; then
@@ -142,6 +137,7 @@ config_xray() {
     echo ""
     echo "生成 $config_type 配置完成"
     echo "Start port: $START_PORT"
+    # End port现在只会是 START_PORT
     echo "End port: $(($START_PORT + $i - 1))"
     if [ "$config_type" == "socks" ]; then
         echo "SOCKS Username: $SOCKS_USERNAME"
@@ -177,4 +173,3 @@ main() {
 }
 
 main "$@"
-
