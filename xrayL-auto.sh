@@ -7,17 +7,41 @@ DEFAULT_SOCKS_PASSWORD="229310"
 DEFAULT_WS_PATH="/ws"
 DEFAULT_UUID=$(cat /proc/sys/kernel/random/uuid)
 
-# --- 恢复使用 hostname -I 来获取所有的IP地址 ---
-IP_ADDRESSES=($(hostname -I))
+# --- GCP专用：通过元数据服务器获取所有公网IP ---
+get_gcp_public_ips() {
+    local ips=()
+    # 查找所有非回环的、活跃的网络接口名 (如 ens4, ens5)
+    local interfaces=$(ip -o link show | awk -F': ' '$3 !~ /lo/ && $2 !~ /@/ {print $2}')
+    
+    echo "Detected network interfaces: $interfaces"
+    
+    for iface in $interfaces; do
+        # 查询每个接口的外部IP
+        local public_ip=$(curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/$(ip -o link show $iface | awk '{print $1}' | tr -d ':')/access-configs/0/external-ip")
+        
+        # 检查是否成功获取IP
+        if [[ -n "$public_ip" && "$public_ip" != "Could not find access config 0 for network interface"* ]]; then
+            # 检查IP是否已在数组中，防止重复
+            if ! [[ " ${ips[@]} " =~ " ${public_ip} " ]]; then
+                ips+=("$public_ip")
+            fi
+        fi
+    done
+    
+    echo "${ips[@]}"
+}
+
+IP_ADDRESSES=($(get_gcp_public_ips))
 if [ ${#IP_ADDRESSES[@]} -eq 0 ]; then
-    echo "Error: 'hostname -I' returned no IPs. Cannot generate config." >&2
+    echo "Error: Could not retrieve any public IPs from GCP Metadata Server." >&2
+    echo "This script might not be running on a GCP instance or the instance lacks external IPs." >&2
     exit 1
 fi
-echo "Found IPs: ${IP_ADDRESSES[*]}"
-# --- 恢复结束 ---
+echo "Found Public IPs via GCP Metadata: ${IP_ADDRESSES[*]}"
+# --- GCP专用代码结束 ---
 
 
-# --- 函数部分 (与之前完美运行的版本一致) ---
+# --- 函数部分 (安装、配置等函数保持不变) ---
 
 install_dependencies() {
     echo "Checking and installing dependencies..."
@@ -49,7 +73,7 @@ After=network.target
 [Service]
 ExecStart=/usr/local/bin/xrayL -c /etc/xrayL/config.toml
 Restart=on-failure
-User=nobody
+User=root
 RestartSec=3
 
 [Install]
@@ -80,9 +104,15 @@ config_xray() {
         WS_PATH=$DEFAULT_WS_PATH
     fi
     
-    # 这个循环现在会为您的两个公网IP分别创建配置
+    # 循环遍历所有找到的公网IP
     for ((i = 0; i < ${#IP_ADDRESSES[@]}; i++)); do
+        public_ip="${IP_ADDRESSES[i]}"
+        
+        # 绑定监听地址到 0.0.0.0，允许从任何地址进入
+        listen_ip="0.0.0.0"
+
         config_content+="[[inbounds]]\n"
+        config_content+="listen = \"$listen_ip\"\n"
         config_content+="port = $((START_PORT + i))\n"
         config_content+="protocol = \"$config_type\"\n"
         config_content+="tag = \"tag_$((i + 1))\"\n"
@@ -90,7 +120,8 @@ config_xray() {
         if [ "$config_type" == "socks" ]; then
             config_content+="auth = \"password\"\n"
             config_content+="udp = true\n"
-            config_content+="ip = \"${IP_ADDRESSES[i]}\"\n"
+            # 注意：socks的ip字段是用来验证客户端来源IP的，这里我们不需要，所以留空或注释掉
+            # config_content+="ip = \"127.0.0.1\"\n" 
             config_content+="[[inbounds.settings.accounts]]\n"
             config_content+="user = \"$SOCKS_USERNAME\"\n"
             config_content+="pass = \"$SOCKS_PASSWORD\"\n"
@@ -102,8 +133,9 @@ config_xray() {
             config_content+="[inbounds.streamSettings.wsSettings]\n"
             config_content+="path = \"$WS_PATH\"\n\n"
         fi
+
         config_content+="[[outbounds]]\n"
-        config_content+="sendThrough = \"${IP_ADDRESSES[i]}\"\n"
+        config_content+="sendThrough = \"$public_ip\"\n"
         config_content+="protocol = \"freedom\"\n"
         config_content+="tag = \"tag_$((i + 1))\"\n\n"
         config_content+="[[routing.rules]]\n"
@@ -121,19 +153,22 @@ config_xray() {
     systemctl --no-pager status xrayL.service
 
     # 为所有需要的端口打开iptables防火墙
-    for ((port = START_PORT; port <= START_PORT + i - 1; port++)); do
-        if iptables -I INPUT -p tcp --dport $port -j ACCEPT && \
-           iptables -I INPUT -p udp --dport $port -j ACCEPT; then
-            echo "Successfully opened port $port."
-        else
-            echo "Failed to open port $port."
+    end_port=$(($START_PORT + ${#IP_ADDRESSES[@]} - 1))
+    for ((port = START_PORT; port <= end_port; port++)); do
+        if ! iptables -C INPUT -p tcp --dport $port -j ACCEPT &> /dev/null; then
+            iptables -I INPUT -p tcp --dport $port -j ACCEPT
+            echo "Opened TCP port $port."
+        fi
+        if ! iptables -C INPUT -p udp --dport $port -j ACCEPT &> /dev/null; then
+            iptables -I INPUT -p udp --dport $port -j ACCEPT
+            echo "Opened UDP port $port."
         fi
     done
 
     echo ""
     echo "生成 $config_type 配置完成"
     echo "Start port: $START_PORT"
-    echo "End port: $(($START_PORT + $i - 1))"
+    echo "End port: $end_port"
     if [ "$config_type" == "socks" ]; then
         echo "SOCKS Username: $SOCKS_USERNAME"
         echo "SOCKS Password: $SOCKS_PASSWORD"
@@ -168,4 +203,3 @@ main() {
 }
 
 main "$@"
-
