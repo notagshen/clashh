@@ -7,20 +7,17 @@ DEFAULT_SOCKS_PASSWORD="229310"
 DEFAULT_WS_PATH="/ws"
 DEFAULT_UUID=$(cat /proc/sys/kernel/random/uuid)
 
-# --- 核心修正：不再使用 hostname -I，直接且仅使用公网IP ---
-# 这样可以确保只为能访问互联网的公网IP创建代理
-echo "Fetching the public IP address..."
-PUBLIC_IP=$(curl -s ifconfig.me)
-if [ -z "$PUBLIC_IP" ]; then
-    echo "Error: Failed to fetch the public IP address. Cannot generate config." >&2
+# --- 恢复使用 hostname -I 来获取所有的IP地址 ---
+IP_ADDRESSES=($(hostname -I))
+if [ ${#IP_ADDRESSES[@]} -eq 0 ]; then
+    echo "Error: 'hostname -I' returned no IPs. Cannot generate config." >&2
     exit 1
 fi
-IP_ADDRESSES=($PUBLIC_IP)
-echo "Using public IP: ${IP_ADDRESSES[0]}"
-# --- 修正结束 ---
+echo "Found IPs: ${IP_ADDRESSES[*]}"
+# --- 恢复结束 ---
 
 
-# --- 函数部分 (无需任何改动) ---
+# --- 函数部分 (与之前完美运行的版本一致) ---
 
 install_dependencies() {
     echo "Checking and installing dependencies..."
@@ -83,8 +80,7 @@ config_xray() {
         WS_PATH=$DEFAULT_WS_PATH
     fi
     
-    # 因为现在 IP_ADDRESSES 数组里只有唯一的公网IP，这个循环只会执行一次
-    # 这就完美地解决了为内网IP创建无效代理的问题
+    # 这个循环现在会为您的两个公网IP分别创建配置
     for ((i = 0; i < ${#IP_ADDRESSES[@]}; i++)); do
         config_content+="[[inbounds]]\n"
         config_content+="port = $((START_PORT + i))\n"
@@ -124,7 +120,7 @@ config_xray() {
     sleep 2
     systemctl --no-pager status xrayL.service
 
-    # i 的值现在最大只会是 1 (因为只有一个IP)
+    # 为所有需要的端口打开iptables防火墙
     for ((port = START_PORT; port <= START_PORT + i - 1; port++)); do
         if iptables -I INPUT -p tcp --dport $port -j ACCEPT && \
            iptables -I INPUT -p udp --dport $port -j ACCEPT; then
@@ -137,7 +133,6 @@ config_xray() {
     echo ""
     echo "生成 $config_type 配置完成"
     echo "Start port: $START_PORT"
-    # End port现在只会是 START_PORT
     echo "End port: $(($START_PORT + $i - 1))"
     if [ "$config_type" == "socks" ]; then
         echo "SOCKS Username: $SOCKS_USERNAME"
@@ -173,3 +168,4 @@ main() {
 }
 
 main "$@"
+
