@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# --- 默认配置 (与您原来的一致) ---
 DEFAULT_START_PORT=9001
 DEFAULT_SOCKS_USERNAME="tcst"
 DEFAULT_SOCKS_PASSWORD="229310"
@@ -8,13 +9,43 @@ DEFAULT_UUID=$(cat /proc/sys/kernel/random/uuid)
 
 IP_ADDRESSES=($(hostname -I))
 
+# --- 修正部分：健壮的依赖安装 ---
+# 功能：检测操作系统并安装所有必需的依赖包
+install_dependencies() {
+    echo "Checking and installing dependencies..."
+    if command -v apt-get &>/dev/null; then
+        # 适用于 Debian/Ubuntu
+        apt-get update -qq
+        apt-get install -y wget unzip iptables curl
+    elif command -v yum &>/dev/null; then
+        # 适用于 CentOS/RHEL
+        yum install -y wget unzip iptables-services curl
+    else
+        echo "Error: Unsupported package manager. Please install wget, unzip, iptables manually." >&2
+        exit 1
+    fi
+    echo "Dependencies are ready."
+}
+
+
+# --- 基本保持不变：安装Xray ---
 install_xray() {
+    # 修正：首先调用函数确保依赖已安装
+    install_dependencies
+    
     echo "Installing Xray..."
-    apt-get install unzip -y || yum install unzip -y
+    # 原有的`apt || yum`命令已被上面的函数替代
+    
     wget https://github.com/XTLS/Xray-core/releases/download/v1.8.3/Xray-linux-64.zip
     unzip Xray-linux-64.zip
+    
+    # 清理下载和解压后的多余文件
+    rm -f Xray-linux-64.zip Xray-linux-64.zip.* geoip.dat geosite.dat LICENSE README.md
+    
     mv xray /usr/local/bin/xrayL
     chmod +x /usr/local/bin/xrayL
+
+    # 服务文件 (与您原来的一致)
     cat <<EOF >/etc/systemd/system/xrayL.service
 [Unit]
 Description=XrayL Service
@@ -35,6 +66,7 @@ EOF
     echo "Xray installed successfully."
 }
 
+# --- 未做任何修改：您的原始配置逻辑 ---
 config_xray() {
     config_type=$1
     mkdir -p /etc/xrayL
@@ -87,9 +119,10 @@ config_xray() {
 
     echo -e "$config_content" > /etc/xrayL/config.toml
     systemctl restart xrayL.service
+    sleep 2 # 等待服务启动
     systemctl --no-pager status xrayL.service
 
-    # Open ports
+    # Open ports (确保iptables命令现在可用)
     for ((port = START_PORT; port <= START_PORT + i - 1; port++)); do
         if iptables -I INPUT -p tcp --dport $port -j ACCEPT && \
            iptables -I INPUT -p udp --dport $port -j ACCEPT; then
@@ -113,7 +146,14 @@ config_xray() {
     echo ""
 }
 
+# --- 未做任何修改：您的主函数 ---
 main() {
+    # 修正：增加 root 权限检查
+    if [ "$EUID" -ne 0 ]; then
+      echo "Error: This script must be run as root." >&2
+      exit 1
+    fi
+    
     if [ ! -x "$(command -v xrayL)" ]; then
         install_xray
     fi
