@@ -2,7 +2,7 @@
 
 HOST="secure6.www.apple.com.cn"
 PORT="443"
-COUNT=5 # 测试次数
+COUNT=20 # 测试次数
 TIMEOUT=2 # 单次连接超时时间 (秒)
 SUM_LATENCY=0
 SUCCESS_COUNT=0
